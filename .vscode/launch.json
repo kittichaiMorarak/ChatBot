@@ -1,0 +1,75 @@
+{
+    // Flutter launch configs
+    //
+    // ทุก config ส่ง --dart-define ให้อัตโนมัติ ไม่ต้องพิมพ์เอง
+    // เลือก config จาก dropdown มุมขวาบน แล้วกด ▶ (run) หรือ 🐛 (debug)
+    //
+    // ⚠️ IP ต่างกันตามเป้าหมาย:
+    //   - Android emulator : 10.0.2.2  (ทางลัดไปยัง host เครื่องนี้)
+    //   - มือถือจริง / macOS / Chrome : IP ของคอม เช็คด้วย ipconfig getifaddr en1
+    // ถ้าเปลี่ยน IP ของคอม ต้องแก้ API_URL ทุกจุดในไฟล์นี้
+    "version": "0.2.0",
+    "configurations": [
+        {
+            // เลือกเครื่องเองตอนกด run (เหมาะตอนต่อมือถือสลับไปมา)
+            "name": "1. Debug",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "toolArgs": [
+                "--dart-define=API_URL=http://10.24.176.189:8000/chat/stream"
+            ],
+            "profile": "debug"
+        },
+        {
+            // Android emulator — ใช้ 10.0.2.2 เสมอ
+            "name": "2. Debug (Android)",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "toolArgs": [
+                "--dart-define=API_URL=http://10.0.2.2:8000/chat/stream"
+            ],
+            "deviceId": "emulator-5554",
+            "profile": "debug"
+        },
+        {
+            // รันบน macOS ได้เลย (ไม่ต้องต่อมือถือ) ใช้ทดสอบ UIเร็ว ๆ
+            // ⚠️ ต้องติดตั้ง Xcode ก่อน
+            "name": "3. Debug (macOS)",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "toolArgs": [
+                "--dart-define=API_URL=http://10.24.176.189:8000/chat/stream"
+            ],
+            "deviceId": "macos",
+            "profile": "debug"
+        },
+        {
+            // เปิดใน Chrome ใช้ทดสอบ logic ล้วน ไม่ต้อง build native
+            "name": "4. Debug (Chrome)",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "toolArgs": [
+                "--dart-define=API_URL=http://10.24.176.189:8000/chat/stream"
+            ],
+            "deviceId": "chrome",
+            "profile": "debug"
+        },
+        {
+            // โหมดปล่อย สำหรับเช็คว่าโค้ด compile ผ่านจริงไหม
+            // (cleartext HTTP เปิดใน main manifest จึงใช้ได้ทั้ง debug/release)
+            "name": "5. Release (macOS)",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "toolArgs": [
+                "--dart-define=API_URL=http://10.24.176.189:8000/chat/stream"
+            ],
+            "deviceId": "macos",
+            "profile": "release"
+        }
+    ]
+}

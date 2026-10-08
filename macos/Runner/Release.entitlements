@@ -4,5 +4,8 @@
 <dict>
 	<key>com.apple.security.app-sandbox</key>
 	<true/>
+	<!-- จำเป็น: ต้องต่อ backend ที่ http://10.24.176.189:8000 -->
+	<key>com.apple.security.network.client</key>
+	<true/>
 </dict>
 </plist>

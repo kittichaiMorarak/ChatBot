@@ -1,0 +1,75 @@
+{
+    // ใช้: Cmd+Shift+P -> "Tasks: Run Task" -> เลือกข้างล่าง
+    // หรือ Terminal menu -> Run Task
+    //
+    // รัน backend ไว้ก่อน แล้วค่อยกด ▶ debug ใน launch.json
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Start Backend",
+            "type": "shell",
+            "command": "./.venv/bin/python -m uvicorn server:app --host 0.0.0.0 --port 8000",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "runOptions": {
+                "runOn": "folderOpen"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "Backend + Flutter (macOS)",
+            "dependsOn": "Start Backend",
+            "dependsOrder": "parallel",
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "Ollama: Start",
+            "type": "shell",
+            "command": "open -a Ollama",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "never"
+            }
+        },
+        {
+            "label": "Ollama: Pull Model",
+            "type": "shell",
+            "command": "ollama pull gemma2:9b",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "Test: Flutter",
+            "type": "shell",
+            "command": "flutter test",
+            "group": "test",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "Analyze",
+            "type": "shell",
+            "command": "flutter analyze",
+            "group": "test",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        }
+    ]
+}
