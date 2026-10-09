@@ -229,6 +229,54 @@ MODEL=qwen2.5:7b .venv/bin/python -m uvicorn server:app --host 0.0.0.0 --port 80
 - **thinking dots** — จุดสามจุดเต้นขึ้นลงตอน AI คิด
 - **สลับแชทระหว่างรอ** — ถ้าสลับไปแชทอื่นขณะ AI ตอบ คำตอบจะไม่หลุดมาผินแชท
 
+## Android Studio
+
+### เปิดโปรเจกต์
+
+1. เปิด Android Studio → **File → Open**
+2. เลือกโฟลเดอร์ `Chatbot` (โฟลเดอร์ที่มี `pubspec.yaml`) — **อย่าเลือกเข้าไปใน `android/`**
+3. รอให้ Gradle sync เสร็จ (ครั้งแรกนาน 2-5 นาที)
+
+### ⚠️ ต้องติดตั้ง Flutter plugin ก่อน
+
+Android Studio ไม่ได้มี Flutter plugin มาให้ในตัว ถ้าเปิดแล้วเห็นแต่โปรเจกต์ Kotlin ธรรมดา
+แปลว่ายังไม่ได้ติดตั้ง:
+
+1. **Settings** (`Cmd+,`) → **Plugins**
+2. ค้นหา **Flutter** → **Install** → ตกลง Restart
+3. เปิดโปรเจกต์ใหม่หลัง restart
+
+### ⚙️ ตั้ง Flutter SDK path
+
+ถ้า Android Studio ถามหา Flutter SDK ให้ใส่ path นี้:
+
+```
+/opt/homebrew/share/flutter
+```
+
+ดู path ปัจจุบันได้ด้วย:
+```bash
+cd "$(dirname $(which flutter))/.." && pwd -P
+```
+
+### Run configuration
+
+ต้องส่ง `--dart-define=API_URL=...` ทุกครั้ง ไม่งั้นจะต่อ backend ไม่ได้
+
+**Run → Edit Configurations → + → Flutter**
+
+| ช่อง | ค่า (สำหรับ emulator) |
+|---|---|
+| Name | `Emulator (10.0.2.2)` |
+| Target platform | `android-emulator` |
+| Additional args | `--dart-define=API_URL=http://10.0.2.2:8000/chat/stream` |
+
+ถ้าจะรันบนมือถือจริง ให้สร้างอีกตัวเป้าหมาย `android-arm64` และใช้ LAN IP แทน
+(`ipconfig getifaddr en1`)
+
+> `.idea/runConfigurations/` อยู่ใน `.gitignore` จึงไม่ถูก push ขึ้น GitHub
+> คนอื่นที่ clone มาต้องสร้าง config เองตามข้างบน
+
 ## VS Code
 
 โปรเจกต์ตั้งค่าไว้ให้แล้ว เปิดด้วย:
