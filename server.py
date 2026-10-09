@@ -197,10 +197,17 @@ class ChatRequest(BaseModel):
     # ตัวละครที่กำลังคุยด้วย (ถ้าไม่ส่ง = น้องซิม)
     character_id: str | None = None
 
+    # บุคลิก (system prompt) ของตัวละครที่ผู้ใช้สร้างเองในแอป
+    # ถ้าว่างจะใช้ persona ของตัวละครใน characters.json แทน
+    persona: str | None = None
+
 
 # ---------------------------------------------------------------- ตัวละคร
 
 CHARACTERS_FILE = Path(__file__).parent / "characters.json"
+
+# บุคลิกยาวเกินนี้จะถูกตัด (กันส่งข้อความยาวมากเกินไป)
+MAX_PERSONA_LENGTH = 4000
 
 # ถ้าโหลดไฟล์ไม่ได้ ยังคงให้น้องซิมใช้งานได้
 FALLBACK_CHARACTER = {
@@ -250,20 +257,36 @@ def get_character(character_id: str | None) -> dict | None:
     return None
 
 
-def build_system_prompt(character: dict | None) -> str:
+def build_system_prompt(
+    character: dict | None,
+    client_persona: str | None = None,
+) -> str:
     """สร้าง system prompt ของตัวละคร
 
-    ถ้าตัวละครยังไม่ได้เขียน persona (template ว่าง)
-    ให้ใช้ prompt ของน้องซิมไปก่อน
+    ลำดับความสำคัญ:
+    1. persona ที่แอปส่งมา (ตัวละครที่ผู้ใช้สร้างเอง)
+    2. persona ใน characters.json
+    3. prompt ของน้องซิม
     """
-    if not character:
-        return SYSTEM_PROMPT
+    # 1. persona จากแอป (ผู้ใช้สร้างตัวละครเอง)
+    from_client = (client_persona or "").strip()
+    if from_client:
+        if len(from_client) > MAX_PERSONA_LENGTH:
+            log.warning(
+                f"persona ยาว {len(from_client)} "
+                f"เกิน {MAX_PERSONA_LENGTH} ตัดให้"
+            )
+            from_client = from_client[:MAX_PERSONA_LENGTH]
+        return from_client
 
-    persona = (character.get("persona") or "").strip()
-    if not persona:
-        return SYSTEM_PROMPT
+    # 2. persona ใน characters.json
+    if character:
+        persona = (character.get("persona") or "").strip()
+        if persona:
+            return persona
 
-    return persona
+    # 3. ค่าเริ่มต้น
+    return SYSTEM_PROMPT
 
 
 @app.get("/")
@@ -352,7 +375,7 @@ def build_messages(request: ChatRequest) -> list[dict[str, str]]:
     if character:
         debug_log(f"ใช้ตัวละคร: {character.get('name')}")
 
-    system_prompt = build_system_prompt(character)
+    system_prompt = build_system_prompt(character, request.persona)
 
     messages = [
         {"role": "system", "content": system_prompt},

@@ -5,22 +5,32 @@ import '../models/message.dart';
 import '../services/chat_api.dart';
 import '../services/chat_storage.dart';
 import '../services/character_api.dart';
+import '../services/character_storage.dart';
 import '../theme.dart';
 import '../widgets/avatar.dart';
 import '../widgets/chat_drawer.dart';
 import '../widgets/message_bubble.dart';
-import 'character_list_page.dart';
+import 'sim_home_page.dart';
 
 class ChatPage extends StatefulWidget {
   final ChatApi api;
   final ChatStorage storage;
   final CharacterApi characterApi;
 
+  /// ตัวละครที่ผู้ใช้สร้างเอง (ใช้หา persona)
+  final CharacterStorage characterStorage;
+
+  /// ตัวละครที่ผู้ใช้เลือกจากหน้าแรก
+  /// ถ้าไม่ส่งมา จะเปิดแชทล่าสุดที่มีอยู่
+  final AiCharacter? initialCharacter;
+
   const ChatPage({
     super.key,
     required this.api,
     required this.storage,
     required this.characterApi,
+    required this.characterStorage,
+    this.initialCharacter,
   });
 
   @override
@@ -48,20 +58,15 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Future<void> _loadCharacters() async {
-    try {
-      final list = await widget.characterApi.loadCharacters();
-      if (!mounted) return;
-      setState(() {
-        _characters = list;
-        _charactersLoading = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _characters = const [fallbackCharacter];
-        _charactersLoading = false;
-      });
-    }
+    // ตัวละครจาก server + ตัวที่ผู้ใช้สร้างเอง
+    final fromServer = await widget.characterApi.loadCharacters();
+    final mine = widget.characterStorage.load();
+
+    if (!mounted) return;
+    setState(() {
+      _characters = [...fromServer, ...mine];
+      _charactersLoading = false;
+    });
   }
 
   /// ตัวละครของแชทที่กำลังเปิดอยู่
@@ -79,31 +84,20 @@ class _ChatPageState extends State<ChatPage> {
   void _openCharacterPicker() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => CharacterListPage(
+        builder: (_) => SimHomePage(
           api: widget.characterApi,
-          currentId: _current?.characterId,
-          onPick: _pickCharacter,
+          storage: widget.characterStorage,
+          onPick: (character) {
+            Navigator.of(context).pop();
+            _pickCharacter(character);
+          },
         ),
       ),
     );
   }
 
   void _pickCharacter(AiCharacter character) {
-    // แชทใหม่เสมอ เพื่อไม่ให้บริบทของตัวเดิมปนกับตัวใหม่
-    final fresh = Conversation(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
-      title: '',
-      characterId: character.id,
-      updatedAt: DateTime.now(),
-      messages: const [],
-    );
-
-    setState(() {
-      _current = fresh;
-      _isTyping = false;
-    });
-
-    _replaceCurrent(fresh);
+    _startChatWith(character);
   }
 
   Future<void> _load() async {
@@ -111,17 +105,41 @@ class _ChatPageState extends State<ChatPage> {
 
     setState(() {
       _conversations = saved;
-      // เปิดล่าสุดเข้าแอป
-      _current = saved.isEmpty ? _newConversation() : saved.first;
       _loaded = true;
+    });
+
+    final initial = widget.initialCharacter;
+
+    if (initial != null) {
+      // ผู้ใช้เพิ่งเลือกตัวละครจากหน้าเข้าหน้าแรก -> เริ่มแชทใหม่กับตัวนั้น
+      _startChatWith(initial);
+      return;
+    }
+
+    // ไม่ได้เลือก (เปิดจากเมนู) -> กลับไปแชทล่าสุด
+    setState(() {
+      _current = saved.isEmpty ? _newConversation() : saved.first;
     });
   }
 
-  Conversation _newConversation() {
+  /// เริ่มแชทใหม่กับตัวละครที่เลือก
+  ///
+  /// ต้องเป็นแชทใหม่เสมอ เพื่อไม่ให้บริบทของตัวเดิมปนกับตัวใหม่
+  void _startChatWith(AiCharacter character) {
+    setState(() {
+      _current = _newConversation(characterId: character.id);
+      _isTyping = false;
+    });
+
+    // แชทใหม่ที่ยังไม่มีข้อความ ไม่ต้องเซฟลงเครื่อง
+  }
+
+  Conversation _newConversation({String? characterId}) {
     // id ต้อง unique เสมอ ถ้าใช้ id เดิมซ้ำจะไปทับแชทเก่า
     return Conversation(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       title: '',
+      characterId: characterId,
       updatedAt: DateTime.now(),
       messages: const [],
     );
@@ -190,6 +208,7 @@ class _ChatPageState extends State<ChatPage> {
     final result = await widget.api.send(
       convAtSend.messages,
       characterId: convAtSend.characterId,
+      persona: _activeCharacter.persona,
       onToken: (token) {
         buffer += token;
 
@@ -476,10 +495,10 @@ class _ChatPageState extends State<ChatPage> {
                   Row(
                     children: [
                       Flexible(
+                        // ชื่อตัวละครเสมอ
+                        // ชื่อแชท (ข้อความแรก) แสดงในเมนูข้างอยู่แล้ว
                         child: Text(
-                          _current?.title.isNotEmpty == true
-                              ? _current!.displayTitle
-                              : character.shortName,
+                          character.shortName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(

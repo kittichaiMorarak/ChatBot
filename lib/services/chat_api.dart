@@ -38,6 +38,7 @@ class ChatApi {
   static Map<String, dynamic> buildPayload(
     List<Message> messages, {
     String? characterId,
+    String? persona,
   }) {
     // เอาท้ายสุด N ข้อความ (ข้อความล่าสุดสำคัญที่สุด)
     // ต้อง skip ก่อน take ไม่งั้นจะได้ข้อความเก่าสุดแทน
@@ -62,6 +63,12 @@ class ChatApi {
       payload['character_id'] = characterId;
     }
 
+    // ตัวละครที่ผู้ใช้สร้างเอง — ส่งบุคลิกไปให้ backend ใช้เป็น system prompt
+    final p = persona?.trim();
+    if (p != null && p.isNotEmpty) {
+      payload['persona'] = p;
+    }
+
     return payload;
   }
 
@@ -71,12 +78,17 @@ class ChatApi {
   Future<ChatResult> send(
     List<Message> messages, {
     String? characterId,
+    String? persona,
     required void Function(String token) onToken,
     Duration connectTimeout = const Duration(seconds: 10),
   }) async {
     final request = http.Request('POST', Uri.parse(apiUrl))
       ..headers['Content-Type'] = 'application/json'
-      ..body = jsonEncode(buildPayload(messages, characterId: characterId));
+      ..body = jsonEncode(buildPayload(
+        messages,
+        characterId: characterId,
+        persona: persona,
+      ));
 
     http.StreamedResponse response;
 
